@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+## Initialize project from scratch (full reset)
+##
+## Usage: fin init
+
+# Abort if anything fails
+set -e
+
+#-------------------------- Helper functions --------------------------------
+
+# Console colors
+red='\033[0;31m'
+green='\033[0;32m'
+green_bg='\033[1;97;42m'
+yellow='\033[1;33m'
+NC='\033[0m'
+
+echo-red () { echo -e "${red}$1${NC}"; }
+echo-green () { echo -e "${green}$1${NC}"; }
+echo-green-bg () { echo -e "${green_bg}$1${NC}"; }
+echo-yellow () { echo -e "${yellow}$1${NC}"; }
+
+#-------------------------- Execution --------------------------------
+
+# Cleanup
+fin project rm -f
+
+# Code
+echo -e "${green_bg} Step 1 ${NC}${green} Initializing codebase...${NC}"
+# Using "fin docker-compose run cli <command>" to run a one off command using the cli service config
+# This way, we can run cli commands BEFORE starting the whole stack (which may fail without dependencies installed first)
+echo -e "${green} * CMS codebase...${NC}"
+fin docker-compose run --rm cli bash -lc /var/www/.docksal/commands/cms/code-init
+echo -e "${green} * Frontend codebase...${NC}"
+fin docker-compose run --rm cli bash -lc /var/www/.docksal/commands/fe/code-init
+
+# Stack
+echo -e "${green_bg} Step 2 ${NC}${green} Initializing stack...${NC}"
+fin project start
+
+# CMS
+echo -e "${green_bg} Step 3 ${NC}${green} Installing CMS...${NC}"
+fin cms/install
+
+echo -e "${green_bg} DONE! ${NC}${green} Completed all initialization steps.${NC}"
+
+echo -e "Drupal CMS:     ${yellow}http://cms-${VIRTUAL_HOST}${NC}"
+echo -e "Preview server: ${yellow}http://preview-${VIRTUAL_HOST}${NC}"
+echo -e "Frontend build: ${yellow}http://${VIRTUAL_HOST}${NC}  (run 'fin fe/build')"
+
+#-------------------------- END: Execution --------------------------------
